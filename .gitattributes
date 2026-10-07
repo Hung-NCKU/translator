@@ -1,0 +1,9 @@
+# shell 腳本一定要是 LF。被轉成 CRLF 的話，在 WSL 裡會出現
+# "bad interpreter: /usr/bin/env bash^M" 而完全無法執行。
+*.sh text eol=lf
+
+# 批次檔反過來，維持 Windows 的 CRLF
+*.bat text eol=crlf
+
+# 其餘文字檔交給 git 自動判斷
+* text=auto

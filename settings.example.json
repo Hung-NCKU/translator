@@ -1,0 +1,18 @@
+{
+  "_說明": "這是設定檔範本。實際的 settings.json 由圖形介面自動產生與儲存，已被 .gitignore 排除（裡面會有你的 API Key）。",
+
+  "source": "自動偵測",
+  "target": "繁體中文",
+  "model": "large-v3-turbo（推薦：快又準）",
+  "engine": "本地開源模型（免費、離線）",
+  "claude_model": "Claude Opus 5（品質最好）",
+  "effort": "標準（建議）",
+  "local_model": "Qwen3 4B（推薦：快一些）",
+  "mode": "只輸出 .srt 字幕檔",
+  "layout": "雙語（譯文在上）",
+  "api_key": "",
+  "outdir": "",
+  "same_dir": true,
+  "font_size": 20,
+  "glossary": ""
+}

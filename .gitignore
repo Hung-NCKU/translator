@@ -1,0 +1,23 @@
+# 個人設定：含 API Key 與本機路徑，絕對不要進版控
+settings.json
+
+# 執行環境：每個人自己跑安裝腳本產生
+.venv/
+__pycache__/
+*.py[cod]
+
+# 可攜式執行檔與字型
+# 注意：bin/fonts 會放從 Windows 複製來的微軟正黑體，有版權，不可散布
+bin/
+
+# 模型檔案，動輒數 GB，第一次執行會自動下載
+models/
+
+# 輸出與紀錄
+output/
+logs/
+*.srt
+*.mp4
+*.mkv
+*.wav
+*.mp3
