@@ -29,7 +29,7 @@
 
 - **批次處理**：一次選多個影片，或整個資料夾（含子資料夾）排隊處理
 - **語音辨識**：faster-whisper，GPU 加速，日/中/韓/英實測皆可用
-- **翻譯**：本地開源模型（免費離線）或 Claude API（品質最好）
+- **翻譯**：本地開源模型，完全離線免費（另有 Google 免費翻譯當備援）
 - **字幕輸出**：外掛 `.srt`、嵌入軟字幕、或燒錄成硬字幕
 - **雙語字幕**：譯文在上、原文在下
 - **術語表**：指定角色名、專有名詞對照，讓整部影集譯名一致
@@ -67,7 +67,7 @@ cd translator
 
 1. 下載可攜式 ffmpeg 與 ffprobe 到 `bin/`
 2. 用 `python3 -m venv` 建立 `.venv/`
-3. 安裝 Python 套件（faster-whisper、CTranslate2、transformers、anthropic 等）
+3. 安裝 Python 套件（faster-whisper、CTranslate2、transformers、OpenCC 等）
 4. 檢查 CUDA 是否可用
 
 第一次安裝約需下載 1～2GB，視網路速度約 5～15 分鐘。
@@ -130,11 +130,11 @@ cd translator
 | 引擎 | 費用 | 一小時影片 | 品質 |
 | --- | --- | --- | --- |
 | **本地開源模型**（預設）| 免費 | 約 1.5 小時 | 好，但日語慣用語會出錯 |
-| **Claude API** | 約 $0.1～0.4 | 約 4 分鐘 | 最好 |
 | **Google 免費翻譯** | 免費 | 約 6 分鐘 | 普通，且很常被限流 |
 | **不翻譯** | — | — | 只產生原文字幕 |
 
-三者都是**整批送出並帶前文上下文**翻譯，所以人稱、語氣、專有名詞能前後一致，不是逐句機翻。
+本專案**不使用任何需要金鑰的雲端翻譯服務**，介面上也沒有填金鑰的地方。
+本地模型是**整批送出並帶前文上下文**翻譯，所以人稱、語氣、專有名詞能前後一致，不是逐句機翻。
 
 ### 本地模型
 
@@ -147,13 +147,7 @@ cd translator
 | NLLB-200 1.3B | 1.4GB | 0.02 秒/句 | 快上百倍，但一條字幕含兩句話時容易漏譯整句 |
 
 **本地翻譯很慢，這是最大的取捨。** 一小時影片要跑 1.5 小時以上（還要加語音辨識時間）。
-趕時間或量大時，用 Claude API 同一支影片只要約 4 分鐘。
-
-### Claude API
-
-需要 [Anthropic API Key](https://console.anthropic.com)，在介面貼上一次即可（存在本機 `settings.json`，已被 git 排除）。
-
-> **注意**：Claude Pro / Max 訂閱**不包含** API 額度，兩者分開計費，需另外購買 credits。
+趕時間的話可以改用 NLLB（快上百倍，但長句會漏譯），或先只輸出原文字幕。
 
 ### 繁體中文處理
 
@@ -232,7 +226,7 @@ turbo 的 decoder 只有 4 層，large-v3 有 32 層，受影響小得多。
 - 「顔が広い」（人脈廣）→ 4B「他臉頰寬廣」、8B「他臉廣」
 - 「乗り遅れる」（沒趕上車）→ 4B「坐過車了」、8B「搭錯電車」
 
-在意這類細節就要用 Claude API。
+這是這個量級的開源模型目前的限制。
 
 ---
 
@@ -243,7 +237,7 @@ backend/            實際處理流程（跑在 WSL 裡）
   cli.py            主流程：讀取工作單、逐檔處理、以 JSON 逐行回報進度
   config.py         路徑、語言表、預設值
   transcribe.py     語音辨識（faster-whisper）與中文繁體化
-  translate.py      翻譯引擎的選擇、Claude API、Google 備援、台灣用語處理
+  translate.py      翻譯引擎的選擇、Google 備援、台灣用語處理
   ct2_translate.py  本地開源模型（CTranslate2 跑 Qwen3 / NLLB）
   subtitles.py      SRT 排版、平衡折行、時間軸整理
   media.py          ffmpeg 封裝：探測、抽音軌、掛字幕、燒字幕
@@ -287,10 +281,6 @@ echo '{"files":["/mnt/d/video.mp4"],"model":"deepdml/faster-whisper-large-v3-tur
 
 **第一次執行卡在「辨識中」很久？**
 顯示卡的運算核心要先編譯並快取，這是一次性的。之後會快很多。
-
-**出現「API 額度不足」？**
-Claude Pro / Max 訂閱不含 API 額度。到 console.anthropic.com → Plans & Billing 購買 credits，
-或把翻譯引擎改成本地模型。
 
 **翻譯失敗了，辨識結果會不會白跑？**
 不會。翻譯一失敗會先把原文字幕存成 `檔名.語言.srt` 再回報錯誤，

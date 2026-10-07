@@ -29,12 +29,6 @@ WHISPER_MODELS = {
     "base（很快，品質低）": "base",
 }
 
-CLAUDE_MODELS = {
-    "Claude Opus 5（品質最好）": "claude-opus-5",
-    "Claude Sonnet 5（快且便宜）": "claude-sonnet-5",
-    "Claude Haiku 4.5（最便宜）": "claude-haiku-4-5",
-}
-
 TARGET_LANGS = ["繁體中文", "簡體中文", "英文", "日文", "韓文", "西班牙文", "法文",
                 "德文", "越南文", "泰文", "印尼文", "俄文", "葡萄牙文", "義大利文",
                 "阿拉伯文", "印地文"]
@@ -47,7 +41,6 @@ SOURCE_LANGS = {
 
 ENGINES = {
     "本地開源模型（免費、離線）": "local",
-    "Claude API（品質最好）": "claude",
     "Google 免費翻譯（常被限流）": "google",
     "不翻譯（只產生原文字幕）": "none",
 }
@@ -68,8 +61,6 @@ SUB_MODES = {
 }
 
 LAYOUTS = {"只有譯文": "target", "雙語（譯文在上）": "bilingual", "只有原文": "source"}
-
-EFFORTS = {"標準（建議）": "medium", "高品質（較慢較貴）": "high", "省錢快速": "low"}
 
 
 def to_wsl_path(win_path: str) -> str:
@@ -184,12 +175,9 @@ class App(tk.Tk):
         self.var_target = tk.StringVar(value="繁體中文")
         self.var_model = tk.StringVar(value=first(WHISPER_MODELS))
         self.var_engine = tk.StringVar(value=first(ENGINES))
-        self.var_claude = tk.StringVar(value=first(CLAUDE_MODELS))
         self.var_local = tk.StringVar(value=first(LOCAL_MODELS))
-        self.var_effort = tk.StringVar(value=first(EFFORTS))
         self.var_mode = tk.StringVar(value=first(SUB_MODES))
         self.var_layout = tk.StringVar(value="雙語（譯文在上）")
-        self.var_key = tk.StringVar()
         self.var_outdir = tk.StringVar()
         self.var_same_dir = tk.BooleanVar(value=True)
         self.var_fontsize = tk.IntVar(value=20)
@@ -207,25 +195,16 @@ class App(tk.Tk):
         combo(1, 0, "語音辨識模型", self.var_model, list(WHISPER_MODELS))
         combo(1, 1, "翻譯引擎", self.var_engine, list(ENGINES))[1].bind(
             "<<ComboboxSelected>>", lambda _e: self._sync_engine())
-        # 這兩組佔同一格，依照選到的引擎只顯示其中一組
-        self.claude_row = combo(2, 0, "Claude 模型", self.var_claude,
-                                list(CLAUDE_MODELS))
         self.local_row = combo(2, 0, "本地翻譯模型", self.var_local,
                                list(LOCAL_MODELS))
-        self.effort_row = combo(2, 1, "翻譯品質", self.var_effort, list(EFFORTS))
-        combo(3, 0, "字幕輸出方式", self.var_mode, list(SUB_MODES))[1].bind(
-            "<<ComboboxSelected>>", lambda _e: self._sync_mode())
-        combo(3, 1, "字幕內容", self.var_layout, list(LAYOUTS))
-
-        ttk.Label(cfg, text="Anthropic API Key").grid(row=4, column=0, sticky="w",
-                                                      padx=(0, 6), pady=4)
-        self.key_entry = ttk.Entry(cfg, textvariable=self.var_key, show="•")
-        self.key_entry.grid(row=4, column=1, sticky="ew", padx=(0, 16), pady=4)
-        ttk.Label(cfg, text="硬字幕字級").grid(row=4, column=2, sticky="w",
+        ttk.Label(cfg, text="硬字幕字級").grid(row=2, column=2, sticky="w",
                                               padx=(0, 6), pady=4)
         self.font_spin = ttk.Spinbox(cfg, from_=10, to=48, width=6,
                                      textvariable=self.var_fontsize)
-        self.font_spin.grid(row=4, column=3, sticky="w", pady=4)
+        self.font_spin.grid(row=2, column=3, sticky="w", pady=4)
+        combo(3, 0, "字幕輸出方式", self.var_mode, list(SUB_MODES))[1].bind(
+            "<<ComboboxSelected>>", lambda _e: self._sync_mode())
+        combo(3, 1, "字幕內容", self.var_layout, list(LAYOUTS))
 
         out_row = ttk.Frame(cfg)
         out_row.grid(row=5, column=0, columnspan=4, sticky="ew", pady=(6, 0))
@@ -285,20 +264,13 @@ class App(tk.Tk):
 
     # ---------------------------------------------------------------- 狀態同步
     def _sync_engine(self) -> None:
-        engine = ENGINES[self.var_engine.get()]
-        is_claude, is_local = engine == "claude", engine == "local"
-
-        # Claude 模型與本地模型共用同一格，換引擎就換掉整組（標籤加下拉）
-        for row, shown in ((self.claude_row, is_claude), (self.local_row, is_local)):
-            for widget in row:
-                if shown:
-                    widget.grid()
-                else:
-                    widget.grid_remove()
-
-        # 翻譯品質（effort）只有 Claude 用得到
-        self.effort_row[1].configure(state="readonly" if is_claude else "disabled")
-        self.key_entry.configure(state="normal" if is_claude else "disabled")
+        # 只有本地引擎需要選模型，其他引擎就把整組（標籤加下拉）收起來
+        is_local = ENGINES[self.var_engine.get()] == "local"
+        for widget in self.local_row:
+            if is_local:
+                widget.grid()
+            else:
+                widget.grid_remove()
 
     def _sync_mode(self) -> None:
         is_hard = SUB_MODES[self.var_mode.get()] == "hard"
@@ -397,9 +369,7 @@ class App(tk.Tk):
                    ("target", self.var_target, {k: k for k in TARGET_LANGS}),
                    ("model", self.var_model, WHISPER_MODELS),
                    ("engine", self.var_engine, ENGINES),
-                   ("claude_model", self.var_claude, CLAUDE_MODELS),
                    ("local_model", self.var_local, LOCAL_MODELS),
-                   ("effort", self.var_effort, EFFORTS),
                    ("mode", self.var_mode, SUB_MODES),
                    ("layout", self.var_layout, LAYOUTS)]
         for key, var, valid in choices:
@@ -415,9 +385,8 @@ class App(tk.Tk):
             if match:
                 var.set(match)
 
-        for key, var in (("api_key", self.var_key), ("outdir", self.var_outdir)):
-            if data.get(key):
-                var.set(data[key])
+        if data.get("outdir"):
+            self.var_outdir.set(data["outdir"])
         self.var_same_dir.set(bool(data.get("same_dir", True)))
         self.var_fontsize.set(int(data.get("font_size", 20)))
         if data.get("glossary"):
@@ -430,10 +399,9 @@ class App(tk.Tk):
         data = {
             "source": self.var_source.get(), "target": self.var_target.get(),
             "model": self.var_model.get(), "engine": self.var_engine.get(),
-            "claude_model": self.var_claude.get(), "effort": self.var_effort.get(),
             "local_model": self.var_local.get(),
             "mode": self.var_mode.get(), "layout": self.var_layout.get(),
-            "api_key": self.var_key.get(), "outdir": self.var_outdir.get(),
+            "outdir": self.var_outdir.get(),
             "same_dir": self.var_same_dir.get(),
             "font_size": int(self.var_fontsize.get()),
             "glossary": self.glossary.get("1.0", "end").strip(),
@@ -452,12 +420,6 @@ class App(tk.Tk):
             messagebox.showwarning("還沒有檔案", "請先加入至少一個影片檔。")
             return
         engine = ENGINES[self.var_engine.get()]
-        if engine == "claude" and not self.var_key.get().strip():
-            messagebox.showwarning(
-                "缺少 API Key",
-                "使用 Claude 翻譯需要填入 Anthropic API Key。\n"
-                "可以到 console.anthropic.com 建立，或改選 Google 免費翻譯。")
-            return
         if not self.var_same_dir.get() and not self.var_outdir.get().strip():
             messagebox.showwarning("缺少輸出資料夾", "請選擇輸出資料夾。")
             return
@@ -472,10 +434,7 @@ class App(tk.Tk):
             "source_code": SOURCE_LANGS[self.var_source.get()],
             "target_lang": self.var_target.get(),
             "engine": engine,
-            "api_key": self.var_key.get().strip(),
-            "claude_model": CLAUDE_MODELS[self.var_claude.get()],
             "local_model": LOCAL_MODELS[self.var_local.get()][0],
-            "effort": EFFORTS[self.var_effort.get()],
             "glossary": self.glossary.get("1.0", "end").strip(),
             "subtitle_mode": SUB_MODES[self.var_mode.get()],
             "layout": LAYOUTS[self.var_layout.get()],
@@ -629,8 +588,8 @@ class App(tk.Tk):
             return f"{seconds // 60} 分 {seconds % 60} 秒"
         return f"{seconds // 3600} 小時 {(seconds % 3600) // 60} 分"
 
-    # 雲端引擎的時間由網路來回決定，用每句秒數估比較準
-    _ENGINE_SPEED = {"claude": 0.4, "google": 0.6, "none": 0.0}
+    # Google 的時間由網路來回決定，用每句秒數估比較準
+    _ENGINE_SPEED = {"google": 0.6, "none": 0.0}
 
     def _predict_translation(self, cue_count: int, chars: int = 0) -> float | None:
         """用所選引擎的實測速度，估算這個檔案的翻譯時間。"""

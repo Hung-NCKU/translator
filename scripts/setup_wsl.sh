@@ -48,7 +48,6 @@ log "安裝 Python 套件（第一次會下載約 1~2 GB，請耐心等候）"
     "jinja2" \
     "opencc-python-reimplemented" \
     "deep-translator>=1.11.4" \
-    "anthropic>=0.40.0" \
     "srt>=3.5.3" \
     "tqdm"
 

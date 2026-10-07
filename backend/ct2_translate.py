@@ -201,7 +201,7 @@ class CT2LLMTranslator(_Base):
             raise RuntimeError(
                 f"本地模型有 {missing}/{len(cues)} 句翻譯失敗。\n"
                 "通常是模型太大、顯存不夠，或這個模型不擅長照格式輸出。\n"
-                "建議改用 Qwen3 4B，或改用 Claude API。")
+                "建議改用 Qwen3 4B。")
 
     @staticmethod
     def _parse(raw: str) -> dict[int, str]:
